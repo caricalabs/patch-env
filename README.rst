@@ -1,49 +1,41 @@
-patch_env - Patch os.environ dynamically without changing code
-==============================================================
+patch_env - Patch os.environ with dynamic values when the interpreter starts
+============================================================================
 
-``patch_env`` lets you change Python's ``os.environ`` (the system environment
+``patch_env`` lets you update Python's ``os.environ`` (the system environment
 variables dictionary) early during the interpreter's lifecycle, using the output
 of a command you specify.
 
 This means you can inject a dynamic set of environment variables into the Python
 interpreter without changing the environment of the process that starts the
-interpreter, or the command line arguments used to start it.  Integrated
-development environments (IDEs) often make it inconvenient or difficult to use
-dynamic values in those things, so ``patch_env`` can help there.
+interpreter or the command line arguments used to start it.  Integrated
+development environments (IDEs) often make it inconvenient or difficult to
+inject dynamic values in those configuration elements, so ``patch_env`` can help
+there.
 
 How it Works
 ------------
 
-``patch_env`` works when you put a symbolic link named for a module you know
-your program will load into a directory that's in ``PYTHONPATH``.  When Python
-tries to import that module, it finds your symbolic link and actually imports
-``patch_env``, which runs a command to update ``os.environ``, removes itself
-from ``sys.path``, and then imports the actual module. The program continues
-running with the updated environment.
+``patch_env`` installs a `Python site-specific configuration hook
+<https://docs.python.org/3/library/site.html>` that causes it to run very early
+when the interpreter starts.  When it runs, if the ``PATCH_ENV_COMMAND``
+environment variable is set, its value is executed as a shell command and the
+output of that command is used to update ``os.environ``.
 
-Since ``patch_env`` removes itself from ``sys.path`` before it completes, you
-can only patch one module per program.  This isn't a problem, though. Just
-choose the module that gets imported earliest.
+So basically, set ``PATCH_ENV_COMMAND`` when you want ``patch_env`` to patch
+things up for you, and don't set it when you don't.
 
-You can put multiple symbolic links in that directory, all pointing to
-``patch_env.py`` of course, when you need to patch multiple programs.  You only
-need to delete symbolic links if they're causing patching to happen too soon
-(this is rarely a problem).
+Your command's output should contain one environment variable per line, in the
+format ``KEY=value``::
 
-You can try using a symbolic link named after a Python system module to get
-patching to happen very early, but this may cause problems because ``patch_env``
-uses some of those modules itself.
-
-Platform Support
-----------------
-
-``patch_env`` should work on any platform that supports symbolic links.  I
-haven't tested it on Windows.
+    FOO=bar
+    AWS_SESSION_TOKEN=FwoGZXIvY...
+    HINT=values can have spaces and "special chars", but not newlines
 
 Example: PyCharm/IntelliJ IDEA debugging with aws-vault
 -------------------------------------------------------
 
-You're developing a program that uses the `boto3 <https://github.com/boto/boto3>` library to access Amazon Web Services (AWS).
+You're developing a program that uses the `boto3
+<https://github.com/boto/boto3>` library to access Amazon Web Services (AWS).
 Your organization prohibits storing unencrypted access keys on disk, so you use
 `aws-vault <https://github.com/99designs/aws-vault>` to manage them securely.
 This works great when you're running your program from the command line, but
@@ -53,26 +45,21 @@ the environment before it starts the Python interpreter.
 Here's how you can use ``patch_env`` with an IDE like PyCharm to inject
 ``aws-vault``'s output into the Python interpreter you're debugging with:
 
-1.  Create an empty directory to contain your patch links (you can use any name)::
+1.  Install ``patch_env`` using pip.
 
-        mkdir /home/myself/patch_env_links
+2.  Edit your PyCharm debug configuration and set the ``PATCH_ENV_COMMAND``
+    environment variable::
 
-2.  Create a symbolic link for ``botocore``, the module we want to patch the
-    environment before importing, that points to wherever ``patch_env.py`` is
-    installed:
+        PATCH_ENV_COMMAND=aws-vault exec my-profile -- sh -c "env | grep ^AWS_"
 
-        ln -s /usr/local/bin/patch_env.py /home/myself/patch_env_links/botocore.py
+    Adjust the ``aws-vault`` command line as needed for your profile, session
+    duration, etc.  The important part is that we make ``aws-vault`` execute a
+    shell process that pipes all its environment variables through `grep` so we
+    select only the AWS credential variables.
 
-3.  Edit your PyCharm debug configuration and set the following two environment
-    variables, adjusting the ``PATCH_ENV_COMMAND`` value as needed to call
-    ``aws-vault`` the right way for your profile:
-
-        PYTHONPATH=/home/myself/patch_env_links
-
-        PATCH_ENV_COMMAND=aws-vault exec myself-profile -- sh -c "env | grep ^AWS_"
-
-Now run the debugger.  ``patch_env`` prints the variables it injects as it
-injects them, so you can look for those in the PyCharm console.
+Now run the debugger.  ``patch_env`` logs the variables it parses from your
+command at the ``DEBUG`` level, so you can configure Python logging at that
+level if you need to verify that they're being parsed correctly.
 
 Limitations
 ===========
@@ -83,6 +70,6 @@ This will fail since ``patch_env`` doesn't feed any input to its
 ``PATCH_ENV_COMMAND``.
 
 As a work-around, open a new terminal and run ``aws-vault exec`` for the profile
-you use for debugging, and enter the credentials there, and then re-launch the
-debugger.  ``aws-vault`` stores its session tokens in your system's keystore,
-and they'll be available to other instances of ``aws-vault`` until they expire.
+you use for debugging, enter the credentials there, and then re-launch the
+debugger.  ``aws-vault`` stores its session tokens in your system's keystore, so
+they'll be available to other instances of ``aws-vault`` until they expire.

@@ -20,7 +20,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 setup(
     name='patch_env',
     version='1.0.0',
-    description='Patch os.environ before a chosen module gets loaded',
+    description='Patch os.environ with dynamic values when the interpreter starts',
     long_description=long_description,
     url='https://github.com/caricalabs/patch-env',
     author='Carica Labs, LLC',
@@ -32,10 +32,10 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3.7',
     ],
-    keywords='environment patch hook load module os.environ',
+    keywords='patch environment dynamic hook os.environ',
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
     install_requires=[],
-    extras_require={'dev': ['check-manifest'], 'test': [],},
+    extras_require={'dev': ['check-manifest'], 'test': []},
     package_data={},
-    entry_points={'scripts': ['patch_env.py']},
+    data_files=[('/', ["patch_env.pth"])],
 )
