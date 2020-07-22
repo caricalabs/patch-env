@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+# Builds a binary "wheel" dist file that you can simply "pip install".
+BASE=$(dirname $0)
+rm -f "$BASE"/dist/*
+python3 setup.py clean bdist_wheel sdist
