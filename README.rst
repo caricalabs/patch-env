@@ -16,7 +16,7 @@ How it Works
 ------------
 
 ``patch_env`` installs a `Python site-specific configuration hook
-<https://docs.python.org/3/library/site.html>` that causes it to run very early
+<https://docs.python.org/3/library/site.html>`_ that causes it to run very early
 when the interpreter starts.  When it runs, if the ``PATCH_ENV_COMMAND``
 environment variable is set, its value is executed as a shell command and the
 output of that command is used to update ``os.environ``.
@@ -35,9 +35,9 @@ Example: PyCharm/IntelliJ IDEA debugging with aws-vault
 -------------------------------------------------------
 
 You're developing a program that uses the `boto3
-<https://github.com/boto/boto3>` library to access Amazon Web Services (AWS).
+<https://github.com/boto/boto3>`_ library to access Amazon Web Services (AWS).
 Your organization prohibits storing unencrypted access keys on disk, so you use
-`aws-vault <https://github.com/99designs/aws-vault>` to manage them securely.
+`aws-vault <https://github.com/99designs/aws-vault>`_ to manage them securely.
 This works great when you're running your program from the command line, but
 there isn't an easy way to get your IDE to feed the output of ``aws-vault`` into
 the environment before it starts the Python interpreter.
